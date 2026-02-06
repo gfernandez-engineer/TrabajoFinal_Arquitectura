@@ -1,0 +1,20 @@
+meta {
+  name: 3 Crear curso
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8082/api/courses
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {"title": "NET", "description": "Curso NET", "instructor": "pedro"}
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

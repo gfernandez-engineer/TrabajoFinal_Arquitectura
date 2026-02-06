@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrabajoFinalArqui - API Documentation</title>
+    <style>
+        body { margin: 0; padding: 0; }
+        #opencollection-container { width: 100vw; height: 100vh; }
+    </style>
+    <link rel="stylesheet" href="https://cdn.opencollection.com/docs.css">
+    <script src="https://cdn.opencollection.com/docs.js"></script>
+</head>
+<body>
+    <div id="opencollection-container"></div>
+    <script>
+        const collectionData = "opencollection: 1.0.0\ninfo:\n  name: TrabajoFinalArqui\nitems:\n  - info:\n      name: 1 Crear usuario\n      type: http\n      seq: 1\n    http:\n      method: POST\n      url: http://localhost:8081/api/users\n      body:\n        type: json\n        data: |\n          {\"fullName\": \"Luisa\", \"email\": \"luisa@test.com\"}\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 2 Validar usuario creado\n      type: http\n      seq: 3\n    http:\n      method: GET\n      url: http://localhost:8081/api/users/1\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 3 Crear curso\n      type: http\n      seq: 4\n    http:\n      method: POST\n      url: http://localhost:8082/api/courses\n      body:\n        type: json\n        data: '{\"title\": \"NET\", \"description\": \"Curso NET\", \"instructor\": \"pedro\"}'\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 4 Publicar Curso\n      type: http\n      seq: 5\n    http:\n      method: PUT\n      url: http://localhost:8082/api/courses/2/publish\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 5 Inscribir estudiante (dispara flujo kafka)\n      type: http\n      seq: 6\n    http:\n      method: POST\n      url: http://localhost:8083/api/enrollments\n      headers:\n        - name: ''\n          value: ''\n      body:\n        type: json\n        data: '{\"userId\": 2, \"courseId\": 1}'\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 6 Verificar Enrollment (debe cambiar a CONFIRMED)\n      type: http\n      seq: 7\n    http:\n      method: GET\n      url: http://localhost:8083/api/enrollments/1\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 7 Verificar payments\n      type: http\n      seq: 8\n    http:\n      method: GET\n      url: http://localhost:8084/api/payments\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\n  - info:\n      name: 8 Verificar Notifications\n      type: http\n      seq: 9\n    http:\n      method: GET\n      url: http://localhost:8085/api/notifications\n      auth: inherit\n    settings:\n      encodeUrl: true\n      timeout: 0\n      followRedirects: true\n      maxRedirects: 5\nbundled: true\nextensions:\n  bruno:\n    ignore:\n      - node_modules\n      - .git\n    exportedAt: '2026-02-06T22:41:43.879Z'\n    exportedUsing: Bruno/3.0.2\n";
+        new window.OpenCollection({
+            target: document.getElementById('opencollection-container'),
+            opencollection: collectionData,
+            theme: 'light'
+        });
+    </script>
+</body>
+</html>

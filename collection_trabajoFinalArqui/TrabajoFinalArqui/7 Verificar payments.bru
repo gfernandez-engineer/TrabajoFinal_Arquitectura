@@ -1,0 +1,16 @@
+meta {
+  name: 7 Verificar payments
+  type: http
+  seq: 8
+}
+
+get {
+  url: http://localhost:8084/api/payments
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
