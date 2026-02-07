@@ -51,7 +51,7 @@ Imagina una aplicacion donde todo esta junto:
 
 ---
 
-## 1.2 Conceptos Clave que DEBES Dominar
+## 1.2 Conceptos Clave que DEBEMOS Dominar
 
 ### Concepto 1: Evento de Dominio
 
