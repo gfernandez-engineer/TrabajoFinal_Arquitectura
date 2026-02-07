@@ -1,6 +1,134 @@
+
+# FUNDAMENTOS TEORICOS 
+
+## 1.1 Que Problema Resuelve Este Proyecto?
+
+### El Problema: Arquitectura Monolitica Tradicional
+
+Imagina una aplicacion donde todo esta junto:
+
+```
+┌─────────────────────────────────────────────────────┐
+│              APLICACION MONOLITICA                  │
+│                                                     │
+│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌────────┐ │
+│  │ Cursos  │──│Inscripc.│──│ Pagos   │──│Notific.│ │
+│  └─────────┘  └─────────┘  └─────────┘  └────────┘ │
+│         TODOS SE LLAMAN DIRECTAMENTE                │
+└─────────────────────────────────────────────────────┘
+```
+
+**Problemas de este enfoque:**
+- Si **Pagos falla**, todo el proceso de inscripcion falla
+- Si hay **muchos usuarios**, no podemos escalar solo Pagos
+- Si queremos **cambiar Notificaciones**, afectamos todo el sistema
+- **Deployment**: cambiar una cosa = desplegar TODO
+
+### La Solucion: Event-Driven Architecture (EDA)
+
+```
+┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+│  Cursos  │     │Inscripc. │     │  Pagos   │     │ Notific. │
+└────┬─────┘     └────┬─────┘     └────┬─────┘     └────┬─────┘
+     │                │                │                │
+     │    PUBLICA     │    PUBLICA     │    PUBLICA     │
+     │    EVENTO      │    EVENTO      │    EVENTO      │
+     ▼                ▼                ▼                ▼
+═══════════════════════════════════════════════════════════════
+                     APACHE KAFKA
+              (Broker de Mensajes / "Cartero")
+═══════════════════════════════════════════════════════════════
+     ▲                ▲                ▲                ▲
+     │   CONSUME      │   CONSUME      │   CONSUME      │
+     │   EVENTOS      │   EVENTOS      │   EVENTOS      │
+```
+
+**Beneficios:**
+- Los servicios **NO se conocen entre si**
+- Si Pagos falla, el evento **queda guardado en Kafka** y se procesa despues
+- Podemos **escalar cada servicio independientemente**
+- Cada equipo puede **trabajar en su servicio** sin afectar a otros
+
+---
+
+## 1.2 Conceptos Clave que DEBES Dominar
+
+### Concepto 1: Evento de Dominio
+
+> **Definicion**: Un evento es algo que YA PASO. Es un hecho historico inmutable.
+
+**Ejemplo de la vida real:**
+- "Juan compro un cafe" (ya paso, no se puede cambiar)
+- "El avion despego" (ya ocurrio)
+
+**En nuestro proyecto:**
+- `EnrollmentCreatedEvent` = "Se creo una inscripcion"
+- `PaymentApprovedEvent` = "Se aprobo un pago"
+
+### Concepto 2: Productor (Publisher)
+
+> **Definicion**: El servicio que CREA y ENVIA el evento a Kafka.
+
+```
+┌────────────────┐          ┌─────────┐
+│ Enrollment     │ ─ENVIA─> │ KAFKA   │
+│ Service        │  evento  │         │
+│ (PRODUCTOR)    │          │         │
+└────────────────┘          └─────────┘
+```
+
+### Concepto 3: Consumidor (Consumer)
+
+> **Definicion**: El servicio que ESCUCHA y PROCESA eventos de Kafka.
+
+```
+┌─────────┐          ┌────────────────┐
+│ KAFKA   │ ─ENVIA─> │ Payment        │
+│         │  evento  │ Service        │
+│         │          │ (CONSUMIDOR)   │
+└─────────┘          └────────────────┘
+```
+
+### Concepto 4: Topic
+
+> **Definicion**: Es como un "canal de television" en Kafka. Cada tipo de evento va a su canal.
+
+**Nuestros Topics:**
+```java
+// En KafkaTopics.java
+public static final String COURSE_EVENTS = "lms.course.events";      // Canal de cursos
+public static final String ENROLLMENT_EVENTS = "lms.enrollment.events"; // Canal de inscripciones
+public static final String PAYMENT_EVENTS = "lms.payment.events";     // Canal de pagos
+```
+
+### Concepto 5: Consumer Group
+
+> **Definicion**: Identifica QUE SERVICIO esta escuchando. Kafka asegura que cada grupo reciba el mensaje UNA vez.
+
+```java
+@KafkaListener(topics = "lms.enrollment.events", groupId = "payment-service-group")
+```
+
+**Importante:** Si hay 3 instancias del Payment Service con el mismo `groupId`, solo UNA procesara cada mensaje.
+
+
 # LMS Microservices
 
 Sistema de Gestión de Aprendizaje (LMS) implementado con arquitectura de microservicios.
+
+```
+trabajo_final/
+├── lms-microservices/           # <-- AQUI ESTAN LOS MICROSERVICIOS
+│   ├── lms-shared/              # Codigo compartido (eventos, config)
+│   ├── user-service/            # Servicio de usuarios
+│   ├── course-service/          # Servicio de cursos
+│   ├── enrollment-service/      # Servicio de inscripciones
+│   ├── payment-service/         # Servicio de pagos
+│   ├── notification-service/    # Servicio de notificaciones
+│   └── docker-compose.yml       # Infraestructura
+│
+└── src/                         # Version monolitica (referencia)
+```
 
 ## Arquitectura
 
@@ -30,6 +158,63 @@ Sistema de Gestión de Aprendizaje (LMS) implementado con arquitectura de micros
 │   service   │   │   service   │   │   service   │
 │   :8084     │   │   :8085     │   │   :8083     │
 └─────────────┘   └─────────────┘   └─────────────┘
+```
+
+## Diagrama de Secuencia Completo (Flujo de Inscripciones)
+
+```
+TIEMPO
+  │
+  │    ┌────────┐    ┌────────────┐    ┌─────────┐    ┌──────────┐    ┌─────────────┐
+  │    │Cliente │    │ Enrollment │    │  KAFKA  │    │ Payment  │    │Notification │
+  │    │  API   │    │  Service   │    │         │    │ Service  │    │  Service    │
+  │    └───┬────┘    └─────┬──────┘    └────┬────┘    └────┬─────┘    └──────┬──────┘
+  │        │               │                │              │                 │
+  ▼        │               │                │              │                 │
+           │ POST /api/    │                │              │                 │
+  1 ──────>│ enrollments   │                │              │                 │
+           │──────────────>│                │              │                 │
+           │               │                │              │                 │
+           │               │ Valida usuario │              │                 │
+  2 ────── │               │ (HTTP)         │              │                 │
+           │               │                │              │                 │
+           │               │ Valida curso   │              │                 │
+  3 ────── │               │ (HTTP)         │              │                 │
+           │               │                │              │                 │
+           │               │ Guarda enrollment              │                 │
+  4 ────── │               │ PENDING_PAYMENT│              │                 │
+           │               │                │              │                 │
+           │               │ EnrollmentCreatedEvent        │                 │
+  5 ────── │               │───────────────>│              │                 │
+           │               │                │              │                 │
+           │  202 ACCEPTED │                │              │                 │
+  6 ──────<│<──────────────│                │              │                 │
+           │               │                │              │                 │
+           │               │                │ Consume      │                 │
+  7 ────── │               │                │─────────────>│                 │
+           │               │                │              │                 │
+           │               │                │              │ Crea Payment    │
+  8 ────── │               │                │              │ PENDING         │
+           │               │                │              │                 │
+           │               │                │              │ Procesa pago    │
+  9 ────── │               │                │              │ (simulado)      │
+           │               │                │              │                 │
+           │               │                │ PaymentApprovedEvent           │
+  10 ───── │               │                │<─────────────│                 │
+           │               │                │              │                 │
+           │               │ Consume        │              │                 │
+  11 ───── │               │<───────────────│              │                 │
+           │               │                │              │                 │
+           │               │ Enrollment.    │              │                 │
+  12 ───── │               │ confirm()      │              │                 │
+           │               │                │              │                 │
+           │               │ EnrollmentConfirmedEvent      │                 │
+  13 ───── │               │───────────────>│──────────────────────────────>│
+           │               │                │              │                 │
+           │               │                │              │                 │ Notifica
+  14 ───── │               │                │              │                 │ usuario
+           │               │                │              │                 │
+  ▼
 ```
 
 ## Servicios
@@ -231,3 +416,22 @@ docker-compose down
 # Para eliminar volúmenes también
 docker-compose down -v
 ```
+
+# GLOSARIO RAPIDO
+
+| Termino | Definicion Simple |
+|---------|-------------------|
+| **EDA** | Event-Driven Architecture. Servicios se comunican via eventos. |
+| **Kafka** | Sistema de mensajeria. Como un cartero que guarda los mensajes. |
+| **Topic** | Canal donde se publican eventos. Como un canal de TV. |
+| **Producer** | Servicio que ENVIA eventos a Kafka. |
+| **Consumer** | Servicio que RECIBE eventos de Kafka. |
+| **Consumer Group** | Identificador del servicio consumidor. |
+| **Offset** | Posicion del ultimo mensaje leido. |
+| **DLQ** | Dead Letter Queue. Donde van los mensajes fallidos. |
+| **Retry** | Reintentar procesar un mensaje si falla. |
+| **Idempotencia** | Ejecutar algo N veces = mismo resultado que 1 vez. |
+| **Saga** | Patron para manejar transacciones entre servicios. |
+| **Pub/Sub** | Publish/Subscribe. Patron donde un productor publica y multiples consumidores reciben. |
+| **Coreografia** | Tipo de Saga donde no hay orquestador central, cada servicio reacciona a eventos. |
+| **Event Observer** | Servicio que escucha multiples topics (como Notification Service). |
